@@ -1,3 +1,4 @@
+from collections import defaultdict
 import re
 import requests
 
@@ -9,6 +10,7 @@ from coalib.bears.requirements.PipRequirement import PipRequirement
 from coalib.results.RESULT_SEVERITY import RESULT_SEVERITY
 from coalib.results.Result import Result
 from coalib.bearlib import deprecate_settings
+from coalib.settings.Setting import typed_dict
 
 
 class InvalidLinkBear(LocalBear):
@@ -40,7 +42,7 @@ class InvalidLinkBear(LocalBear):
             pass
 
     @staticmethod
-    def find_links_in_file(file, timeout, link_ignore_regex):
+    def find_links_in_file(file, timeout_map, link_ignore_regex):
         link_ignore_regex = re.compile(link_ignore_regex)
         regex = re.compile(
             r'((ftp|http)s?://[^.:%\s_/?#[\]@\\]+\.(?:[^\s()%\'"`<>|\\]+|'
@@ -49,13 +51,16 @@ class InvalidLinkBear(LocalBear):
             match = regex.search(line)
             if match:
                 link = match.group()
+                # Get hostname from link
+                host = link
+
                 if not link_ignore_regex.search(link):
-                    code = InvalidLinkBear.get_status_code(link, timeout)
+                    code = InvalidLinkBear.get_status_code(link, timeout_map[host])
                     yield line_number + 1, link, code
 
     @deprecate_settings(link_ignore_regex='ignore_regex')
     def run(self, filename, file,
-            timeout: int=DEFAULT_TIMEOUT,
+            timeout_map: typed_dict(str, int, DEFAULT_TIMEOUT)={},
             link_ignore_regex: str="([.\/]example\.com|\{|\$)",
             follow_redirects: bool=False):
         """
@@ -76,8 +81,15 @@ class InvalidLinkBear(LocalBear):
         :param link_ignore_regex:     A regex for urls to ignore.
         :param follow_redirects: Set to true to autocorrect redirects.
         """
+        new_timeout_map = defaultdict(lambda: DEFAULT_TIMEOUT)
+        for link, timeout in timeout_map.items():
+            # Process link to hostname
+            host = link
+
+            new_timeout_map[host] = timeout
+
         for line_number, link, code in InvalidLinkBear.find_links_in_file(
-                file, timeout, link_ignore_regex):
+                file, new_timeout_map, link_ignore_regex):
             if code is None:
                 yield Result.from_values(
                     origin=self,
