@@ -1,3 +1,5 @@
+import re
+
 from coalib.bears.LocalBear import LocalBear
 from coalib.results.Result import Result
 from coalib.results.RESULT_SEVERITY import RESULT_SEVERITY
@@ -10,14 +12,19 @@ class LineCountBear(LocalBear):
     LICENSE = 'AGPL-3.0'
     CAN_DETECT = {'Formatting'}
 
-    def run(self, filename, file, max_lines_per_file: int):
+    def run(self, filename, file, max_lines_per_file: int,
+            exclude_blank_lines: bool=False):
         """
         Count the number of lines in a file and ensure that they are
         smaller than a given size.
 
         :param max_lines_per_file: Number of lines allowed per file.
+        :param exclude_blank_lines: True if blank lines are to be excluded.
         """
         file_length = len(file)
+        blank_lines = len(list(filter(lambda x: re.match(r'^\s*$', x), file)))
+        if exclude_blank_lines:
+            file_length = file_length - blank_lines
         if file_length > max_lines_per_file:
             yield Result.from_values(
                 origin=self,
