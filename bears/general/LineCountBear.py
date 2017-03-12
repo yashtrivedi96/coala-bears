@@ -13,12 +13,13 @@ class LineCountBear(LocalBear):
     CAN_DETECT = {'Formatting'}
 
     def run(self, filename, file, max_lines_per_file: int,
-            exclude_blank_lines: bool=False):
+            min_lines_per_file: int, exclude_blank_lines: bool=False):
         """
         Count the number of lines in a file and ensure that they are
         smaller than a given size.
 
         :param max_lines_per_file: Number of lines allowed per file.
+        :param min_lines_per_file: Minimum lines allowed per file.
         :param exclude_blank_lines: True if blank lines are to be excluded.
         """
         file_length = len(file)
@@ -32,5 +33,14 @@ class LineCountBear(LocalBear):
                          'lines more than the maximum limit specified.'
                          .format(count=file_length,
                                  extra=file_length-max_lines_per_file)),
+                severity=RESULT_SEVERITY.NORMAL,
+                file=filename)
+        if file_length < min_lines_per_file:
+            yield Result.from_values(
+                origin=self,
+                message=('This file had {count} lines, which is {extra} '
+                         'lines less than the minimum limit specified.'
+                         .format(count=file_length,
+                                 extra=min_lines_per_file-file_length)),
                 severity=RESULT_SEVERITY.NORMAL,
                 file=filename)

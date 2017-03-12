@@ -15,6 +15,7 @@ class LineCountBearTest(LocalBearTestHelper):
 
     def test_run(self):
         self.section.append(Setting('max_lines_per_file', 1))
+        self.section.append(Setting('min_lines_per_file', 0))
         self.check_results(
             self.uut, ['line 1', 'line 2', 'line 3'],
             [Result.from_values('LineCountBear',
@@ -29,6 +30,7 @@ class LineCountBearTest(LocalBearTestHelper):
     def test_exclude_blank_lines(self):
         self.section.append(Setting('exclude_blank_lines', True))
         self.section.append(Setting('max_lines_per_file', 2))
+        self.section.append(Setting('min_lines_per_file', 1))
         self.check_results(
             self.uut, ['line 1', ' ', 'line 2',
                        'line 3', '\n', '\t', ' line 4',
@@ -36,6 +38,20 @@ class LineCountBearTest(LocalBearTestHelper):
             [Result.from_values('LineCountBear',
                                 'This file had 7 lines, which is 5 lines more '
                                 'than the maximum limit specified.',
+                                severity=RESULT_SEVERITY.NORMAL,
+                                file='default')],
+            filename='default')
+
+    def test_min_lines_per_file(self):
+        self.section.append(Setting('exclude_blank_lines', True))
+        self.section.append(Setting('max_lines_per_file', 10))
+        self.section.append(Setting('min_lines_per_file', 5))
+        self.check_results(
+            self.uut, ['line 1', ' ', 'line 2', '\n', '\t', ' line 3',
+                       'line 4 '],
+            [Result.from_values('LineCountBear',
+                                'This file had 4 lines, which is 1 lines less '
+                                'than the minimum limit specified.',
                                 severity=RESULT_SEVERITY.NORMAL,
                                 file='default')],
             filename='default')

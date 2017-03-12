@@ -40,6 +40,7 @@ body_enforce_issue_reference = False
 enabled = False
 bears = LineCountBear
 max_lines_per_file = 1000
+min_lines_per_file = 0
 
 [rst]
 bear = reSTLintBear
